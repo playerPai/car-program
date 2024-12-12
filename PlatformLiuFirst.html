@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>移动加油平台</title>
+		<link href="./css/leaflet.css" rel="stylesheet" />
+        <script src="./js/leaflet.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<style>
+			body {
+				margin: 0;
+                background-color: #0074c2;
+				padding: 0;
+                width: 100%;
+			}
+
+			#mapid {
+				position: absolute;
+				height: 100%;
+                top: 0%;
+				left: 20%;
+                right: 0%;
+                z-index: 0;
+			}
+            #word1{
+                position: absolute;
+                left: 2.5%;
+                top: 2.5%;
+                font-size: 20px;
+                color: white;
+                
+                font-family: "Microsoft Yahei", "微软雅黑", "Pinghei";
+            }
+            #word2{
+                position: absolute;
+                left: 45%;
+                top: 2.5%;
+                font-size: 15px;
+                color: white;
+                
+            }
+            #word3{
+                position: absolute;
+                left: 80%;
+                top: 2.5%;
+                font-size: 15px;
+                color: white;
+            }
+            #MessagePopup{
+                position: absolute;
+                background-color: red;
+                left: 90%;
+                top: 7.5%;
+                font-size: 15px;
+                color: white;   
+            }
+            #myBarChart{
+                position: absolute;
+                left: 2.5%;
+                top: 10% ;
+                max-width: 100%;
+               
+                background-color: yellow;
+            }
+            #chart1{
+                position: absolute;
+                top: 10%;
+                left: 0%;
+                width: 20%;
+                height: 20%;
+                z-index: 2;
+            }
+            #mission{
+                position: absolute;
+                top: 30%;
+                left: 1%;
+            }
+            .box{
+                background-color: white;
+                padding: 5px;
+                margin: 5px;
+            }
+            #averageMission{
+               display: block;
+                text-align: center;
+            }
+            #waitTime{
+               display: block;
+                text-align: center;
+            }
+            .whiteword{
+                color: white;
+            }
+		</style>
+	</head>
+    <body>
+        <div id="mapid"></div>
+        <p id="word1"><strong>"滴滴加油"移动加油模拟平台</strong></p>
+       <!-- <p id="word2">真实数据监控</p>
+        <p id="word3">移动加油模拟</p>-->
+        <div id="MessagePopup">
+            <p>"消息弹窗"</p>
+            <p><span id="car1"></span>车正申请加油</p>
+            <p><span id="car2"></span>车正在前往</p>
+        </div>
+        <div id="chart1">
+        <canvas id="myBarChart" ></canvas>
+        </div>
+        <div id="mission">
+        <p class="whiteword">平均完成任务量（单位时间）</p>
+        <div class="box">
+            <p><span id="averageMission"></span></p>
+        </div>
+        <p class="whiteword">农机最多等待时间</p>
+        <div class="box">
+            <p><span id="waitTime"></span></p>
+        </div>
+        </div>
+        <script>
+            var map = L.map('mapid', {
+                center: new L.LatLng(39.86,116.45),
+                zoom: 10
+            });
+            L.tileLayer('http://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+                maxZoom: 18,
+                
+            }).addTo(map);
+            
+            var car1=document.getElementById("car1");
+            car1.textContent='A';
+            var car2=document.getElementById("car2");
+            car2.textContent='B';
+            var ctx = document.getElementById('myBarChart').getContext('2d');
+            var one=20;
+            var two=22;
+            var three=50;
+            var myBarChart = new Chart(ctx, {
+                type: 'bar', // 指定图表类型为柱状图
+                data: {
+                    labels: ['一号车', '二号车', '三号车'], // X 轴标签
+                    datasets: [{
+                        label: '数据2',
+                        data: [one,two,three], // Y 轴数据
+                        backgroundColor: '#008000',// 柱状图的背景颜色
+                        borderColor: '#800080', // 柱状图的边框颜色
+                        borderWidth: 1 // 边框宽度
+                    }]
+                },
+                options: {
+                   // responsive: true,  // 启用响应式
+                   // maintainAspectRatio: false, // 禁用保持纵横比，允许图表根据容器大小调整
+                    scales: {
+                        y: {
+                            beginAtZero: true // 设置 Y 轴从零开始
+                        }
+                    }
+                }
+            });
+            var mission=100;
+            var time=3;
+            var averageMission=document.getElementById("averageMission");
+            averageMission.textContent=mission;
+            var averageMission=document.getElementById("waitTime");
+            averageMission.textContent=time;
+            var noji=L.icon({
+                iconUrl:"./images/农机.jpg",
+                iconSize:[50,50],
+                iconAnchor:[0,0],
+            });
+            var jiayouche=L.icon({
+                iconUrl:"./images/加油车.jpg",
+                iconSize:[50,50],
+                iconAnchor:[0,0],
+            });
+            var locationa = [[40, 116], [40.1, 116.2]];
+            var locationb=[[35, 121], [34.8, 120.6]];
+            L.marker(locationa[1],{icon:noji}).addTo(map);
+            L.marker(locationb[1],{icon:jiayouche}).addTo(map);
+		    var polylinea = L.polyline(locationa).addTo(map);
+            var polylineb = L.polyline(locationb).addTo(map);
+			function draw() {
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.Marker &&( layer.getLatLng().equals(locationa[1])||layer.getLatLng().equals(locationb[1]))) {
+                        map.removeLayer(layer);
+                    }
+                    });
+
+                
+				// 创建一个新的location数组用于更新polyline
+				var newLocationa = [
+					[locationa[1][0], locationa[1][1]],  // 更新第一个点的坐标
+					[locationa[1][0] + 0.1, locationa[1][1] + 0.2]  // 更新第二个点的坐标
+				];
+                var newLocationb = [
+					[locationb[1][0], locationb[1][1]],  // 更新第一个点的坐标
+					[locationb[1][0] - 0.2, locationb[1][1] - 0.4]  // 更新第二个点的坐标
+				];
+				//polyline.setLatLngs(newLocation);  // 更新polyline
+                L.polyline(newLocationa).addTo(map);
+                L.polyline(newLocationb).addTo(map);
+				// 更新原始location数组
+				locationa = newLocationa;
+                locationb=newLocationb;
+                L.marker(locationa[1],{icon:noji}).addTo(map);
+                L.marker(locationb[1],{icon:jiayouche}).addTo(map);
+				if (locationa[1][0] > 45) {
+					clearInterval(interval);
+				}
+                if(locationb[1][0]<20){
+                    clearInterval(interval);
+                }
+			}
+
+			var interval = setInterval(draw, 500);
+
+        </script>
+    </body>
+</html>
