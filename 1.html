@@ -1,11 +1,196 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>移动加油平台</title>
+    <link rel="stylesheet" href="test.css" />
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: '1597d2c7b16e3964ae5b16675b0bbb51',
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=4acb4a42e4a3dd98c099057ae1b959f1"></script>
 </head>
+<style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        /* .header {
+            background-color: #00529B;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            height: 10%;
+        } */
+        .sidebar {
+            width: 200px;
+            background-color: #0074C2;
+            color: white;
+            padding: 10px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            text-align: center;
+        }
+        .sidebar input, .sidebar button {
+            margin: 10px 0;
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .sidebar {
+            z-index: 1000; /* 或者更高的值 */
+        }
+        #timeline{
+            z-index: 1000;
+        }
+</style>
 <body>
-    
+    <div class="sidebar">
+        <h2>移动加油平台</h2>
+        <h3>参数选择1</h3>
+        <input type="text" placeholder="输入参数1">
+        <h3>参数选择2</h3>
+        <input type="text" placeholder="输入参数2">
+        <button>应用</button>
+    </div>
+    <div id="container"></div>
+    <div id="myPageTop">
+        <table>
+            <tr>
+                <td>
+                    <label>请输入地点：</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input id="tipinput" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="timeline">
+        <input type="range" min="0" max="100" value="50" class="timeline-slider" />
+        <span id="timestamp-display">2023-10-01T12:00:00Z</span>
+      </div>
+
+    <script type="text/javascript">
+        //地图加载
+        var map = new AMap.Map("container", {
+            resizeEnable: true
+        });
+        //输入提示
+        var autoOptions = {
+            input: "tipinput"
+        };
+
+        AMap.plugin(['AMap.PlaceSearch', 'AMap.AutoComplete'], function() {
+            var auto = new AMap.AutoComplete(autoOptions);
+            var placeSearch = new AMap.PlaceSearch({
+                map: map
+            }); //构造地点查询类
+            auto.on("select", select); //注册监听，当选中某条记录时会触发
+            function select(e) {
+                placeSearch.setCity(e.poi.adcode);
+                placeSearch.search(e.poi.name); //关键字查询查询
+            }
+        });
+
+        // 示例数据，这些数据可以从后端服务器获取，或者预先存储在前端的数据库中。假设你已经有了这些数据，可以使用JavaScript来处理这些数据。
+        const data = [
+        {
+            timestamp: '2023-10-01T12:00:00Z',
+            farmMachinery: {
+            fuelLevel: 50,
+            position: { lat: 39.9042, lng: 116.4074 }
+            },
+            refuelingTruck: {
+            fuelLevel: 1000,
+            plannedRoute: [
+                { lat: 39.9042, lng: 116.4074 },
+                { lat: 39.9152, lng: 116.4274 }
+            ],
+            position: { lat: 39.9042, lng: 116.4074 }
+            }
+        },
+        // 更多数据...
+        ];
+
+        // 获取指定时间戳的数据
+        function getDataForTimestamp(timestamp) {
+        return data.find(item => item.timestamp === timestamp);
+        }
+
+        // 示例：获取2023-10-01T12:00:00Z的数据
+        const timestamp = '2023-10-01T12:00:00Z';
+        const dataForTimestamp = getDataForTimestamp(timestamp);
+
+
+        //倍速播放按钮可以使用JavaScript来控制时间轴的移动速度。
+        const timelineSlider = document.querySelector('.timeline-slider');
+        const timestampDisplay = document.getElementById('timestamp-display');
+
+        // 初始化时间戳
+        let currentTimestamp = '2023-10-01T12:00:00Z';
+        let speed = 1; // 倍速
+
+        // 更新时间戳
+        function updateTimestamp() {
+        // 更新时间戳
+        currentTimestamp = data[Math.floor(timelineSlider.value / 100 * data.length)].timestamp;
+        timestampDisplay.textContent = currentTimestamp;
+
+        // 更新地图上的位置
+        const dataForTimestamp = getDataForTimestamp(currentTimestamp);
+        if (dataForTimestamp) {
+            // 更新农机和加油车的位置
+            const farmMachineryPosition = dataForTimestamp.farmMachinery.position;
+            const refuelingTruckPosition = dataForTimestamp.refuelingTruck.position;
+
+            // 更新地图上的标记
+            // 示例：更新农机的位置
+            const farmMachineryMarker = new AMap.Marker({
+            position: farmMachineryPosition,
+            title: 'Farm Machinery'
+            });
+            farmMachineryMarker.setMap(map);
+
+            // 示例：更新加油车的位置
+            const refuelingTruckMarker = new AMap.Marker({
+            position: refuelingTruckPosition,
+            title: 'Refueling Truck'
+            });
+            refuelingTruckMarker.setMap(map);
+        }
+        }
+
+        // 监听滑块变化
+        timelineSlider.addEventListener('input', updateTimestamp);
+
+        // 倍速播放按钮
+        const playButton = document.createElement('button');
+        playButton.textContent = 'Play';
+        playButton.addEventListener('click', () => {
+        // 控制时间轴移动速度
+        setInterval(() => {
+            timelineSlider.value += speed;
+            updateTimestamp();
+        }, 1000 / speed);
+        });
+
+        document.body.appendChild(playButton);
+    </script>
 </body>
+
 </html>
